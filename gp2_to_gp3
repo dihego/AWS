@@ -7,7 +7,7 @@ import botocore
 import time
 
 #os.system('clear')
-os.system('date')
+#os.system('date')
 
 ec2 = boto3.resource('ec2',"us-east-1")
 volume = ec2.volumes.all() #can be specific with ec2.describe_volumes or ec2.modify_volume
@@ -30,10 +30,7 @@ print ("@@@@ Output example of gp2 and available volumes only!!")
 print (' ')
 print (' ')
 for x in vols:
-	#print(vol)
     print (x.id)
-    #print(vols.volume_type)
-    #for vol2 in vol
     print (x.tags)
     print (x.state)
     print (x.volume_type)
@@ -42,14 +39,10 @@ for x in vols:
 print ("#######")
 print ("Execution AWS CLI command \n")
 for xx in vols:
-    #print (xx.id)
     cmd1 =  ("aws ec2 modify-volume --volume-type gp3 --volume-id ") +  (xx.id)
     print (cmd1)
-#   os.system(cmd1)
-    #gp2togp3 = volume.modify_volume(xx.id,volume_type='gp3',DryRun='True')
-    #print (gp2togp3)
-time.sleep(2)
-#os.system('clear')
+
+#time.sleep(2)
 
 print ('''###############################################################
 ###############################################################
@@ -69,7 +62,6 @@ response = client.describe_volumes()
 
 
 
-#volumen = [voxx for voxx in response if voxx.VolumeType == 'gp2']
 
 
 
@@ -105,7 +97,6 @@ respuesta = client.describe_volumes(
             'Name': 'status',
             'Values': ['available']
         }
-        # Create a new Filter to match on Tags OR Name
     ])
     
 
