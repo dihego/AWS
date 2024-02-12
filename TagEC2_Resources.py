@@ -3,9 +3,16 @@ import os,sys
 import boto3
 import botocore
 import time
+from tqdm import tqdm
 
 os.system('clear')
 os.system('date')
+print ('''#############################################################################################
+Tagging resources [EC2 Fleet, EBS Volumes, Security Groups and ENIs] to VPC-ID or value of your choice.
+Get detail billing with TAG association in Cost Explorer.
+#######################################################################################################
+#######################################################################################################''')
+
 
 def get_arguments():
     ...
@@ -41,31 +48,34 @@ def get_ids(pass_ec2,pass_vpcid):
 
 def add_tags(ec2, ec2_list, volumeid_list, eni_list, sg_list):
     # ...
-    print ("Updating EC2 Fleet:")
+    print (f"Updating EC2 Fleet. A total of {(len(ec2_list))} resources!")
+    testlenth = (len(ec2_list))
     for a in ec2_list:
         try:
             modifyec2 = ec2.create_tags(DryRun=True, Resources=[a],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
         except botocore.exceptions.ClientError as error:
             print (error)
+    
+
     print ()
-    print ("Updating EBS: ")
+    print (f"Updating EBS Volumes. A total of {(len(volumeid_list))} resources!")
     for b in volumeid_list:
         try:
             modifyebs = ec2.create_tags(DryRun=True, Resources=[b],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
         except botocore.exceptions.ClientError as error:
             print (error)
-
-    print ("Updating ENIs: ")
+    print ()
+    print (f"Updating ENIs. A total of {(len(eni_list))} resources!")
     for c in eni_list:
         try:
             modifyeni = ec2.create_tags(DryRun=True, Resources=[c],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
         except botocore.exceptions.ClientError as error:
             print (error)
-
-    print ("Updating SG: ")
+    print ()
+    print (f"Updating Security Groups. A total of {(len(sg_list))} resources!")
     for d in sg_list:
         try:
-            modifysg = ec2.create_tags(DryRun=False, Resources=[d],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
+            modifysg = ec2.create_tags(DryRun=True, Resources=[d],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
         except botocore.exceptions.ClientError as error:
             print (error)
 
@@ -77,7 +87,9 @@ def add_elbs():
     ...
 
 ec2 = boto3.client('ec2',"us-east-1")
-enter_vpc = input("Enter VPC ID to TAG all EC2 fleet, EBS, Security Groups and ENIs: ")
+enter_vpc = input("Enter VPC ID: ")
+print ()
+print ("##################################################################################")
 arg = get_arguments()
 ids = get_ids(ec2, enter_vpc)
 #enis = add_interfaces()
