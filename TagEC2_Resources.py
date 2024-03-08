@@ -23,25 +23,9 @@ def get_ids(pass_ec2):
     list_volumeids = []
     list_eniIds = []
     list_sgIds = []
-    list_vpcIds = []
 
 
 
-
-
-    listvpcids = pass_ec2.descibe_vpcs():
-    for vpcattributes in listvpcids['Vpcs']:
-        getvpcids = (vpcattributes['vpc-id'])
-        print (getvpcids)
-        listvpcids.append(getvpcids)
-    
-    print (len(list_vpcIds))
-    for x in list_vpcIds:
-        print (x)
-
-
-
-'''
     instancesbyvpc = pass_ec2.describe_instances(Filters=[{'Name': 'vpc-id','Values': [pass_vpcid]}])
     for ec2attributes in instancesbyvpc['Reservations']:
         for i in ec2attributes['Instances']:
@@ -96,7 +80,7 @@ def add_tags(ec2, ec2_list, volumeid_list, eni_list, sg_list):
             modifysg = ec2.create_tags(DryRun=True, Resources=[d],Tags=[{'Key':'BillingTag','Value':'vpc-0832a05760d4b5726'}])
         except botocore.exceptions.ClientError as error:
             print (error)
-'''
+
 
 def add_interfaces():
     ...
@@ -105,7 +89,7 @@ def add_elbs():
     ...
 
 ec2 = boto3.client('ec2',"us-east-1")
-#enter_vpc = input("Enter VPC ID: ")
+enter_vpc = input("Enter VPC ID: ")
 print ()
 print ("##################################################################################")
 ids = get_ids(ec2)
