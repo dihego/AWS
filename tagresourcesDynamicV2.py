@@ -16,7 +16,7 @@ Get detail billing with TAG association in Cost Explorer.
 def get_arguments():
     ...
 
-def get_ids(pass_ec2,GetToken):
+def get_ids(pass_ec2,pass_elb,GetToken):
     vpc_names = []
 
     print ("#####")
@@ -45,15 +45,50 @@ def get_ids(pass_ec2,GetToken):
         else:
             print (f"All VPCs should have a ***NAME***")
             return None        
-        
-    add_instances(pass_ec2,vpc_names,GetToken)
-    add_interfaces(pass_ec2,vpc_names,GetToken)
-    get_securitygroups(pass_ec2,vpc_names,GetToken)
+    
+    get_subnets(pass_ec2,vpc_names,GetToken)
+    #get_vpcs(pass_ec2,vpc_names,GetToken)
+    #get_instances(pass_ec2,vpc_names,GetToken)
+    #get_interfaces(pass_ec2,vpc_names,GetToken)
+    #get_securitygroups(pass_ec2,vpc_names,GetToken)
+    #get_elbs(pass_elb,vpc_names,GetToken)
+
+def get_subnets(pass_ec2,vpc_names,GetToken):
+    for matchingvpcs in vpc_names:
+        resourcebyvpc = pass_ec2.describe_subnets(
+            Filters=[
+                {
+                    'Name': 'vpc-id',
+                    'Values': [matchingvpcs]
+                }
+            ])
+
+        for resourceAttribute in resourcebyvpc['Subnets']:
+            getresourceid = (resourceAttribute['SubnetId'])
+            getsvpcid = (resourceAttribute['VpcId'])
+            add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
 
 
 
 
-def add_instances(pass_ec2,vpc_names,GetToken):
+def get_vpcs(pass_ec2,vpc_names,GetToken):
+    for matchingvpcs in vpc_names:
+        resourcebyvpc = pass_ec2.describe_vpcs(
+            Filters=[
+                {
+                    'Name': 'vpc-id',
+                    'Values': [matchingvpcs]
+                }
+            ])
+
+        for resourceAttribute in resourcebyvpc['Vpcs']:
+            getresourceid = (resourceAttribute['VpcId'])
+            getsvpcid = (resourceAttribute['VpcId'])
+            add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
+
+
+
+def get_instances(pass_ec2,vpc_names,GetToken):
     for matchingvpcs in vpc_names:
         resourcebyvpc = pass_ec2.describe_instances(
             Filters=[
@@ -74,9 +109,8 @@ def add_instances(pass_ec2,vpc_names,GetToken):
             add_tags(pass_ec2,getresourceid,getvpcid,vpc_names)
 ### Try filtering w/out for_loop_
 
-    
 
-def add_interfaces(pass_ec2,vpc_names,GetToken):
+def get_interfaces(pass_ec2,vpc_names,GetToken):
     for matchingvpcs in vpc_names:
         resourcebyvpc = pass_ec2.describe_network_interfaces(
             Filters=[
@@ -109,8 +143,28 @@ def get_securitygroups(pass_ec2,vpc_names,GetToken):
 
 
 
-def add_elbs():
-    ...
+def get_elbs(pass_elb,vpc_names,GetToken):
+    print (pass_elb)
+    #resourcebyvpc = pass_elb.describe_load_balancers()
+    #print (resourcebyvpc)
+    for matchingvpcs in pass_elb:
+        #resourcebyvpc = pass_elb.describe_load_balancers()#'''(
+            #Filters=[
+                #{
+               #     'Name': 'vpc-id',
+              #      'Values': [matchingvpcs]
+             #   }
+            #])
+        print (matchingvpcs)
+        #for resourceAttribute in resourcebyvpc['LoadBalancers']:
+        #    getresourceid = (resourceAttribute['LoadBalancerArn'])
+        #    getsgvpcid = (resourceAttribute['VpcId'])
+        #    add_tags(pass_ec2,getresourceid,getsgvpcid,vpc_names)
+
+
+
+
+
 
 def add_tags(ec2,resource_list,vpc_list,vpc_names):
     for key, value in vpc_names.items():
@@ -136,6 +190,8 @@ def add_ebs_tags(ec2,resource_list,getvolumeid,vpc_list,vpc_names):
 
 falsetoken = True
 ec2 = boto3.client('ec2',"us-east-1")
+elb = boto3.client('elbv2',"us-east-1")
+
 print ()
 print ("##################################################################################")
-ids = get_ids(ec2,falsetoken)
+get_ids(ec2,elb,falsetoken)
