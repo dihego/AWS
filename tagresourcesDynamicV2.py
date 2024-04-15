@@ -45,13 +45,78 @@ def get_ids(pass_ec2,pass_elb,GetToken):
         else:
             print (f"All VPCs should have a ***NAME***")
             return None        
-    
+
+    get_nat_gateways(pass_ec2,vpc_names,GetToken)
+    get_endpoints(pass_ec2,vpc_names,GetToken)
+    get_routetables(pass_ec2,vpc_names,GetToken)
     get_subnets(pass_ec2,vpc_names,GetToken)
-    #get_vpcs(pass_ec2,vpc_names,GetToken)
-    #get_instances(pass_ec2,vpc_names,GetToken)
-    #get_interfaces(pass_ec2,vpc_names,GetToken)
-    #get_securitygroups(pass_ec2,vpc_names,GetToken)
+    get_vpcs(pass_ec2,vpc_names,GetToken)
+    get_instances(pass_ec2,vpc_names,GetToken)
+    get_interfaces(pass_ec2,vpc_names,GetToken)
+    get_securitygroups(pass_ec2,vpc_names,GetToken)
     #get_elbs(pass_elb,vpc_names,GetToken)
+
+
+
+
+def get_nat_gateways(pass_ec2,vpc_names,GetToken):
+    for matchingvpcs in vpc_names:
+        resourcebyvpc = pass_ec2.describe_nat_gateways(
+            Filters=[
+                {
+                    'Name': 'vpc-id',
+                    'Values': [matchingvpcs]
+                }
+            ])
+
+        for resourceAttribute in resourcebyvpc['NatGateways']:
+            getresourceid = (resourceAttribute['NatGatewayId'])
+            getsvpcid = (resourceAttribute['VpcId'])
+            add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
+
+
+
+
+def get_endpoints(pass_ec2,vpc_names,GetToken):
+    for matchingvpcs in vpc_names:
+        resourcebyvpc = pass_ec2.describe_vpc_endpoints(
+            Filters=[
+                {
+                    'Name': 'vpc-id',
+                    'Values': [matchingvpcs]
+                }
+            ])
+
+        for resourceAttribute in resourcebyvpc['VpcEndpoints']:
+            getresourceid = (resourceAttribute['VpcEndpointId'])
+            getsvpcid = (resourceAttribute['VpcId'])
+            add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
+
+
+
+
+
+
+
+
+def get_routetables(pass_ec2,vpc_names,GetToken):
+    for matchingvpcs in vpc_names:
+        resourcebyvpc = pass_ec2.describe_route_tables(
+            Filters=[
+                {
+                    'Name': 'vpc-id',
+                    'Values': [matchingvpcs]
+                }
+            ])
+
+        for resourceAttribute in resourcebyvpc['RouteTables']:
+            getresourceid = (resourceAttribute['RouteTableId'])
+            getsvpcid = (resourceAttribute['VpcId'])
+            add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
+
+
+
+
 
 def get_subnets(pass_ec2,vpc_names,GetToken):
     for matchingvpcs in vpc_names:
@@ -160,10 +225,6 @@ def get_elbs(pass_elb,vpc_names,GetToken):
         #    getresourceid = (resourceAttribute['LoadBalancerArn'])
         #    getsgvpcid = (resourceAttribute['VpcId'])
         #    add_tags(pass_ec2,getresourceid,getsgvpcid,vpc_names)
-
-
-
-
 
 
 def add_tags(ec2,resource_list,vpc_list,vpc_names):
