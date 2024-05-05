@@ -46,6 +46,9 @@ def get_ids(pass_ec2,pass_elb,GetToken):
             print (f"All VPCs should have a ***NAME***")
             return None        
 
+
+
+    get_tgwattachment(pass_ec2,vpc_names,GetToken)
     get_nat_gateways(pass_ec2,vpc_names,GetToken)
     get_endpoints(pass_ec2,vpc_names,GetToken)
     get_routetables(pass_ec2,vpc_names,GetToken)
@@ -54,8 +57,22 @@ def get_ids(pass_ec2,pass_elb,GetToken):
     get_instances(pass_ec2,vpc_names,GetToken)
     get_interfaces(pass_ec2,vpc_names,GetToken)
     get_securitygroups(pass_ec2,vpc_names,GetToken)
-    #get_elbs(pass_elb,vpc_names,GetToken)
+    ##get_elbs(pass_elb,vpc_names,GetToken)
 
+
+
+def get_tgwattachment(pass_ec2,vpc_names,GetToken):
+    resourcebyvpc = pass_ec2.describe_transit_gateway_attachments(TransitGatewayAttachmentIds=[],
+        Filters=[
+            {
+                'Name': 'resource-type',
+                'Values': ['vpc']
+            }
+        ]) 
+    for matchingvpcs in resourcebyvpc['TransitGatewayAttachments']:
+        getresourceid = (matchingvpcs['TransitGatewayAttachmentId'])
+        getsvpcid = (matchingvpcs['ResourceId'])
+        add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
 
 
 
@@ -75,8 +92,6 @@ def get_nat_gateways(pass_ec2,vpc_names,GetToken):
             add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
 
 
-
-
 def get_endpoints(pass_ec2,vpc_names,GetToken):
     for matchingvpcs in vpc_names:
         resourcebyvpc = pass_ec2.describe_vpc_endpoints(
@@ -91,12 +106,6 @@ def get_endpoints(pass_ec2,vpc_names,GetToken):
             getresourceid = (resourceAttribute['VpcEndpointId'])
             getsvpcid = (resourceAttribute['VpcId'])
             add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
-
-
-
-
-
-
 
 
 def get_routetables(pass_ec2,vpc_names,GetToken):
@@ -172,7 +181,6 @@ def get_instances(pass_ec2,vpc_names,GetToken):
                     add_ebs_tags(pass_ec2,getresourceid,getvolumeid,getvpcid,vpc_names)
 
             add_tags(pass_ec2,getresourceid,getvpcid,vpc_names)
-### Try filtering w/out for_loop_
 
 
 def get_interfaces(pass_ec2,vpc_names,GetToken):
@@ -243,7 +251,7 @@ def add_ebs_tags(ec2,resource_list,getvolumeid,vpc_list,vpc_names):
         if key == vpc_list:
             print (f"VOLUMES@@@@ Applying Billing Tag {value}___ for __{vpc_list}__ to Resource {getvolumeid} from instance {resource_list} ############")
             try:
-                modifyec2 = ec2.create_tags(DryRun=True, Resources=[getvolumeid],Tags=[{'Key':'BillingTag','Value':value}])
+                modifyec2 = ec2.create_tags(DryRun=False, Resources=[getvolumeid],Tags=[{'Key':'BillingTag','Value':value}])
             except botocore.exceptions.ClientError as error:
                 print (error)
     print ()
