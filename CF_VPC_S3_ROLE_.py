@@ -31,11 +31,13 @@ Parameters:
       Please enter a working email address!
     Type: String
     AllowedPattern: ^.*@\w+.\w+$
-  TransitGatewayId:
+  CurrentTransitGatewayId:
     Description: Your Account is part of a Hub/Spoke topology participating to a pre-existing TGW.
       Whats your TransitGTW Id?
-      "tgw-0764cba494fbb77ed"
+      Example => "tgw-0764cba494fbb77ed"
     Type: String
+    AllowedPattern: ^tgw-[0-9].*$
+    ConstraintDescription: Enter a valid Id!!
 
 
   #SelectSG:
@@ -269,11 +271,14 @@ Resources:
   TGWAttch:
     Type: AWS::EC2::TransitGatewayAttachment
     Properties:
-         TransitGatewayId: !Ref TransitGatewayId
-         VpcId: !Ref VPC2024
-         SubnetIds:
-              - !Ref Subnettransa
-              - !Ref Subnettransb
+      TransitGatewayId: !Ref CurrentTransitGatewayId
+      VpcId: !Ref VPC2024
+      SubnetIds:
+        - !Ref Subnettransa
+        - !Ref Subnettransb
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-stack
 
 #Creation of Subnet association
 # Note that there is no way to reference the MAIN RouteTable of a VPC outside the template
@@ -359,8 +364,8 @@ Resources:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref RouteTableApp
-      DestinationCidrBlock: 0.0.0.0/0
-      TransitGatewayId: !Ref TransitGatewayId
+      DestinationCidrBlock: 172.30.0.0/16
+      TransitGatewayId: !Ref CurrentTransitGatewayId
 
 # Create Endpoints
   S3Endpoint:
