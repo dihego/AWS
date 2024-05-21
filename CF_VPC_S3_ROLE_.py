@@ -351,8 +351,9 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: ami-0bb84b8ffd87024d8
       SubnetId: !Ref Subnetappb
-      SecurityGroupIds: 
+      SecurityGroupIds:
         - !Ref AppSG
+        
       IamInstanceProfile: !Ref S3InstanceProfile
       KeyName: !Ref KeyNameKey
       Tags:
@@ -366,6 +367,8 @@ Resources:
       RouteTableId: !Ref RouteTableApp
       DestinationCidrBlock: 172.30.0.0/16
       TransitGatewayId: !Ref CurrentTransitGatewayId
+    DependsOn:
+         - TGWAttch
 
 # Create Endpoints
   S3Endpoint:
