@@ -1,0 +1,186 @@
+{
+    "widgets": [
+        {
+            "height": 8,
+            "width": 14,
+            "y": 25,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName, eventSource, sourceIPAddress, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, eventID\n| filter eventSource not like /s3/\n| filter errorCode like /Unauthorized|Denied|Forbidden/",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "EC2_Lambda_ctrail",
+                "view": "table"
+            }
+        },
+        {
+            "height": 8,
+            "width": 9,
+            "y": 25,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, eventID\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count(*) as changes by eventName, Assumedrole, bin(60s)\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "EC2 Changes_Ctrail(60s)",
+                "view": "table"
+            }
+        },
+        {
+            "height": 7,
+            "width": 8,
+            "y": 18,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count(*) as DenyByRole by eventName, Assumedrole, bin(5ms)\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "CTrail_ec2(5ms)",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 7,
+            "width": 6,
+            "y": 18,
+            "x": 8,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | SOURCE '/aws/events/ctrails3' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count(*) as DeniesByEventName by eventName\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Ctrail",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 7,
+            "width": 9,
+            "y": 18,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode  like /Unauthorized|Denied|Forbidden/\n| stats count(*) as DeniesByRole by eventName, Assumedrole",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 6,
+            "width": 18,
+            "y": 0,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode  like /Unauthorized|Denied|Forbidden/\n| stats count(*) as Changes by bin(60s)",
+                "region": "us-east-1",
+                "stacked": true,
+                "title": "ec2_linear_(1m)",
+                "view": "timeSeries"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 12,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | SOURCE '/aws/events/ctrails3' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count() as changes by bin(60s), eventName\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "EC2_EventName(60s)",
+                "view": "bar"
+            }
+        },
+        {
+            "height": 6,
+            "width": 14,
+            "y": 45,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, sourceIPAddress,responseElements.ConsoleLogin as FailedLogin, errorMessage, userIdentity.sessionContext.sessionIssuer.principalId as UserIdentifier, eventID as CtrailEventId\n| filter eventSource = 'signin.amazonaws.com'\n| filter eventName = 'ConsoleLogin'\n| filter FailedLogin like /Failure/\n| display eventTime, FailedLogin, sourceIPAddress, errorMessage ",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Console Login",
+                "view": "table"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 6,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Log group: /aws/events/ctrail",
+                "view": "table"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 33,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | SOURCE '/aws/events/ctrails3' | fields eventCategory, errorCode, userIdentity.arn as RoleAssumed ,userIdentity.type as Service_OR_role, eventSource, eventName, sourceIPAddress, userAgent, userIdentity.sessionContext.sessionIssuer.userName as RoleOrUsername, resources.1.ARN as bucketname\n| filter eventSource = 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count(*) as denies by bin(5m)\n",
+                "region": "us-east-1",
+                "title": "S3 Bucket Denies",
+                "view": "timeSeries",
+                "stacked": false
+            }
+        },
+        {
+            "height": 6,
+            "width": 9,
+            "y": 45,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, responseElements.ConsoleLogin as Login, responseElements.ConsoleLogin as FailedLogin, sourceIPAddress, userIdentity.principalId as AssumedUser,  userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, userIdentity.accessKeyId as Token, userIdentity.sessionContext.sessionIssuer.principalId as UserIdentifier, eventID as CtrailEventId\n| filter eventSource = 'signin.amazonaws.com'\n| filter eventName = 'ConsoleLogin'\n| filter FailedLogin like /Failure/\n| stats count(FailedLogin) as FailedLogins by bin(24h)",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Console_login",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 39,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | SOURCE '/aws/events/ctrails3' | fields eventCategory, errorCode, userIdentity.arn as RoleAssumed ,userIdentity.type as Service_OR_role, eventSource, eventName, sourceIPAddress, userAgent, userIdentity.sessionContext.sessionIssuer.userName as RoleOrUsername, resources.1.ARN as bucketname\n| filter eventSource = 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count() as count by errorCode, bucketname, userAgent, Service_OR_role, userAgent, RoleOrUsername\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "S3 Bucket Denies",
+                "view": "table"
+            }
+        },
+        {
+            "height": 6,
+            "width": 5,
+            "y": 0,
+            "x": 18,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole\n| filter eventSource != 's3.amazonaws.com'\n| filter errorCode like /Unauthorized|Denied|Forbidden/\n| stats count() as Total_Denies",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Total Denies",
+                "view": "table"
+            }
+        }
+    ]
+}
