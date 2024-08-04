@@ -1,0 +1,207 @@
+{
+    "variables": [
+        {
+            "type": "property",
+            "property": "query",
+            "inputType": "input",
+            "id": "query",
+            "label": "query",
+            "visible": true
+        }
+    ],
+    "widgets": [
+        {
+            "height": 8,
+            "width": 14,
+            "y": 24,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName, eventSource, sourceIPAddress, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, eventID\n| filter eventSource like /ec2|lambda/\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "EC2_Lambda_ctrail",
+                "view": "table"
+            }
+        },
+        {
+            "height": 10,
+            "width": 23,
+            "y": 32,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/config' | fields eventTime, account,detail.configurationItem.configuration.vpcId as vpc, detail.configurationItem.awsRegion as region, detail.configurationItem.resourceId as ResourceName, detail.configurationItem.resourceType as resoucetype, detail.configurationItem.tags.Name as tag, detail.configurationItemDiff.changeType as changetype, detail.configurationItemDiff.changedProperties.Configuration.Routes.0.changeType as resourcchangetype\n| sort eventTime desc\n| limit 10000",
+                "region": "us-east-1",
+                "title": "Log group: /aws/events/config",
+                "view": "table"
+            }
+        },
+        {
+            "height": 8,
+            "width": 9,
+            "y": 24,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, eventID\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count(*) as changes by eventName, Assumedrole, bin(60s)\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "EC2 Changes_Ctrail(60s)",
+                "view": "table"
+            }
+        },
+        {
+            "height": 7,
+            "width": 8,
+            "y": 17,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count(*) as changes by eventName, Assumedrole, bin(5ms)\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "CTrail_ec2(5ms)",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 7,
+            "width": 6,
+            "y": 17,
+            "x": 8,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count() as changes by eventName\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Ctrail",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 7,
+            "width": 9,
+            "y": 17,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.principalId as Username, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, 'requestParameters'\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count(*) as changes by eventName, Assumedrole",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 5,
+            "width": 19,
+            "y": 12,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count(*) as ec2Changes by bin(60s)",
+                "region": "us-east-1",
+                "stacked": true,
+                "title": "ec2_linear_(1m)_No_denies",
+                "view": "timeSeries"
+            }
+        },
+        {
+            "height": 6,
+            "width": 14,
+            "y": 42,
+            "x": 0,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, sourceIPAddress, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, userIdentity.accessKeyId as Token, userIdentity.sessionContext.sessionIssuer.principalId as UserIdentifier,responseElements.ConsoleLogin as FailedLogin, errorMessage, eventID as CtrailEventId\n| filter eventSource = 'signin.amazonaws.com'\n| filter eventName = 'ConsoleLogin'",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Console Login",
+                "view": "table"
+            }
+        },
+        {
+            "height": 6,
+            "width": 9,
+            "y": 42,
+            "x": 14,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, responseElements.ConsoleLogin as Login, sourceIPAddress, userIdentity.principalId as AssumedUser,  userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, userIdentity.accessKeyId as Token, userIdentity.sessionContext.sessionIssuer.principalId as UserIdentifier, eventID as CtrailEventId\n| filter eventSource = 'signin.amazonaws.com'\n| filter eventName = 'ConsoleLogin'\n| stats count() by AssumedUser, bin(24h)",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "",
+                "view": "pie"
+            }
+        },
+        {
+            "height": 5,
+            "width": 4,
+            "y": 12,
+            "x": 19,
+            "type": "log",
+            "properties": {
+                "query": "SOURCE '/aws/events/ctrail' | fields eventTime, eventName,requestParameters.groupId as resourceID , eventSource,  sourceIPAddress, sessionContext, userIdentity.sessionContext.sessionIssuer.userName as Assumedrole\n| filter eventSource = 'ec2.amazonaws.com'\n| filter eventName not like /^Describe|^Get|^List/\n| filter errorCode not like /Unauthorized|Denied|Forbidden/\n| stats count() as Total_Number_of_Changes",
+                "region": "us-east-1",
+                "stacked": false,
+                "title": "Total",
+                "view": "table"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 0,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ "AWS/Usage", "CallCount", "Type", "API", "Resource", "ReplaceRoute", "Service", "EC2", "Class", "None", { "region": "us-east-1" } ],
+                    [ "...", "ReplaceRouteTableAssociation", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AssociateIamInstanceProfile", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "TerminateInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "RunInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AuthorizeSecurityGroupIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateRoute", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "UpdateSecurityGroupRuleDescriptionsIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "ModifyVolume", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "StopInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AttachVolume", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "StartInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "DeleteRoute", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "RevokeSecurityGroupIngress", ".", ".", ".", "." ],
+                    [ "...", "DeleteNetworkInterface", ".", ".", ".", "." ],
+                    [ "...", "CreateNetworkInterface", ".", ".", ".", "." ]
+                ],
+                "sparkline": false,
+                "view": "timeSeries",
+                "stacked": true,
+                "region": "us-east-1",
+                "period": 60,
+                "stat": "Sum",
+                "title": "(Count)Includes Denies"
+            }
+        },
+        {
+            "height": 6,
+            "width": 23,
+            "y": 6,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ "AWS/Usage", "CallCount", "Type", "API", "Resource", "UpdateFunctionCode20150331v2", "Service", "Lambda", "Class", "None", { "region": "us-east-1" } ],
+                    [ "...", "UpdateFunctionConfiguration20150331v2", ".", ".", ".", ".", { "region": "us-east-1" } ]
+                ],
+                "sparkline": false,
+                "view": "timeSeries",
+                "stacked": true,
+                "region": "us-east-1",
+                "period": 60,
+                "stat": "Sum",
+                "title": "Lambda_Includes Denies"
+            }
+        }
+    ]
+}
