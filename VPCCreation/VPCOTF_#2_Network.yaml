@@ -1,0 +1,286 @@
+Description: Creates a Prefixlist to maintain routing and Default Security Group
+Parameters: 
+  ApplyExistingTGW: 
+    Description: >
+      **Existing** TGW ID to be attached to the VPC?
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+
+  ApplyNewTGW: 
+    Description: >
+      **New** TGW ID to be attached to the VPC? 
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+
+  PublicNAT:
+    Description: Requires a Public NAT GTW? 
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+
+  IGWSupport:
+    Description: Requires an IGW?
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes   
+
+Conditions:
+  IfnoExistingTGWConnectivity: !Equals [!Ref ApplyExistingTGW, Yes]
+  IfnoNewTGWConnectivity: !Equals [!Ref ApplyNewTGW, Yes]
+  NoPublicNAT: !Equals [!Ref PublicNAT, Yes]
+  NoIGW: !Equals [!Ref IGWSupport, Yes]
+
+Resources:
+#########################
+#PrefixList#
+#########################
+  NewPrefixListWebApp:
+    Type: AWS::EC2::PrefixList
+    #DeletionPolicy: Retain
+    Properties:
+      PrefixListName: !Sub ${AWS::StackName}WebAPP
+      AddressFamily: IPv4
+      MaxEntries: 10
+      Entries:
+        - Cidr: 192.168.101.0/24
+          Description: VPN
+        - Cidr: 172.30.0.0/20
+          Description: VPC_dgoNatSec
+        - Cidr: 172.30.88.0/21
+          Description: OtherVPC
+        - Cidr: !ImportValue HubVPCVPCCIDR
+          Description: Inter VPC Traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PrefixWebapp
+
+  PrefixListPublic:
+    Type: AWS::EC2::PrefixList
+    #DeletionPolicy: Retain
+    Properties:
+      PrefixListName: !Sub ${AWS::StackName}PublicPrefix
+      AddressFamily: IPv4
+      MaxEntries: 10
+      Entries:
+        - Cidr: 0.0.0.0/0
+          Description: Internet
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-Prefix_Public
+
+  OutsideAccountRouting:
+    Type: AWS::EC2::PrefixList
+    #DeletionPolicy: Retain
+    Properties:
+      PrefixListName: VPNDXOtherAccount
+      AddressFamily: IPv4
+      MaxEntries: 10
+      Entries:
+        - Cidr: 192.168.101.0/24
+          Description: VPN
+        - Cidr: 172.30.88.0/21
+          Description: dihegov_isengard_Other
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-IntraRoutingPrefix
+
+
+#########################
+# Security Groups
+#########################
+  AppSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-AppSG
+      GroupDescription: App Security Group
+      SecurityGroupIngress:
+        - SourcePrefixListId: !Ref NewPrefixListWebApp
+          IpProtocol: -1
+          Description: Allow VPC CIDR       
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AppSG
+      VpcId: !ImportValue HubVPCDgoVPCID
+
+
+  PublicSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-PublicSG
+      GroupDescription: App Security Group
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          SourcePrefixListId: !Ref NewPrefixListWebApp
+          Description: Allow Web Traffic CIDR 
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourcePrefixListId: !Ref PrefixListPublic
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PublicSG
+      VpcId: !ImportValue HubVPCDgoVPCID
+
+##############################
+#### Attaching VPCs to TGW
+#############################
+
+# Attach Existing VPC to TGW
+
+  TGWAttch:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Condition: IfnoExistingTGWConnectivity
+    Properties:
+      TransitGatewayId: !ImportValue HubVPCExistingTGWID
+      VpcId: !ImportValue HubVPCDgoVPCID
+      SubnetIds:
+        - !ImportValue HubVPCSubnetTransA
+        - !ImportValue HubVPCSubnetTransB
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-TGWAttchment
+
+
+# Attach New VPC to New TGW
+  NewTGWAttch:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Condition: IfnoNewTGWConnectivity
+    Properties:
+      TransitGatewayId: !ImportValue HubVPCNewTGWID
+      VpcId: !ImportValue HubVPCDgoVPCID
+      SubnetIds:
+        - !ImportValue HubVPCSubnetTransA
+        - !ImportValue HubVPCSubnetTransB
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-TGWAttchment          
+
+
+
+
+#########################
+# Public NAT GATEWAY
+#########################
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Condition: NoPublicNAT  
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !ImportValue HubVPCSubnetPubA
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-Public-NAT
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Condition: NoPublicNAT
+    Properties:
+      Domain: !ImportValue HubVPCDgoVPCID
+
+#########################
+# Route Entries #########
+#########################
+
+
+# Existing TGW
+# App Route tables A
+  ExistingTGWVPNDXOtherAccountA:
+    Type: AWS::EC2::Route
+    Condition: IfnoExistingTGWConnectivity
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTA
+      DestinationPrefixListId: !Ref OutsideAccountRouting
+      TransitGatewayId: !ImportValue HubVPCExistingTGWID
+    DependsOn:
+         - TGWAttch
+# App Route tables B
+  ExistingTGWVPNDXOtherAccountB:
+    Type: AWS::EC2::Route
+    Condition: IfnoExistingTGWConnectivity
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTB
+      DestinationPrefixListId: !Ref OutsideAccountRouting
+      TransitGatewayId: !ImportValue HubVPCExistingTGWID
+    DependsOn:
+         - TGWAttch
+
+# New TGW
+# App Route tables A & B
+  NewTGWVPNDXOtherAccountA:
+    Type: AWS::EC2::Route
+    Condition: IfnoNewTGWConnectivity
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTA
+      DestinationPrefixListId: !Ref OutsideAccountRouting
+      TransitGatewayId: !ImportValue HubVPCNewTGWID
+    DependsOn:
+         - NewTGWAttch
+# App Route tables B
+  NewTGWVPNDXOtherAccountB:
+    Type: AWS::EC2::Route
+    Condition: IfnoNewTGWConnectivity
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTB
+      DestinationPrefixListId: !Ref OutsideAccountRouting
+      TransitGatewayId: !ImportValue HubVPCNewTGWID
+    DependsOn:
+         - NewTGWAttch
+
+
+# IGW to Public Route Table #######
+# IGW Assocation & Public Route entry Default Route
+  MyRoute:
+    Type: AWS::EC2::Route
+    Condition: NoIGW
+    Properties:
+      RouteTableId: !ImportValue HubVPCPublicRTA
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !ImportValue MyIGW
+
+# Public NAT GTW
+# App Route tables A & B
+
+  RouteNATGatewayAPPA:
+    Type: AWS::EC2::Route
+    Condition: NoPublicNAT
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTA
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGateway
+
+  RouteNATGatewayAPPB:
+    Type: AWS::EC2::Route
+    Condition: NoPublicNAT
+    Properties:
+      RouteTableId: !ImportValue HubVPCDgoVPCAPPRTB
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGateway
+
+
+
+
+
+
+########################################
+#Outputs
+Outputs:
+  SGWebApp:
+    Description: Security Groupf for Inter Intra
+    Value: !Ref AppSG
+    Export:
+      Name: HubWebbAppSG
+
+  SGPublic:
+    Description: Security Groupf for Public
+    Value: !Ref PublicSG
+    Export:
+      Name: PublicSG
