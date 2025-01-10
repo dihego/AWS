@@ -1,4 +1,4 @@
-#bin/python3
+#!bin/python3
 import os,sys
 import boto3
 import botocore
@@ -16,7 +16,7 @@ Get detail billing with TAG association in Cost Explorer.
 def get_arguments():
     ...
 
-def get_ids(pass_ec2,pass_elb,GetToken):
+def get_ids(pass_ec2,pass_elb,pass_lambdaa,GetToken):
     vpc_names = []
 
     print ("#####")
@@ -44,11 +44,11 @@ def get_ids(pass_ec2,pass_elb,GetToken):
             vpc_names[testing] = getname_tag[0]
         else:
             print (f"All VPCs should have a ***NAME***")
-            return None        
+            return None
 
 
-
-    get_tgwattachment(pass_ec2,vpc_names,GetToken)
+    #get_lambdaa(pass_lambdaa,vpc_names,GetToken)
+    #get_tgwattachment(pass_ec2,vpc_names,GetToken)
     get_nat_gateways(pass_ec2,vpc_names,GetToken)
     get_endpoints(pass_ec2,vpc_names,GetToken)
     get_routetables(pass_ec2,vpc_names,GetToken)
@@ -57,19 +57,35 @@ def get_ids(pass_ec2,pass_elb,GetToken):
     get_instances(pass_ec2,vpc_names,GetToken)
     get_interfaces(pass_ec2,vpc_names,GetToken)
     get_securitygroups(pass_ec2,vpc_names,GetToken)
-    ##get_elbs(pass_elb,vpc_names,GetToken)
+    #get_elbs(pass_elb,vpc_names,GetToken)
+
+
+def get_lambdaa(pass_lambdaa,vpc_names,GetToken):
+    resourcebyvpc = pass_lambdaa.list_functions()
+
+    for matchingvpcs in resourcebyvpc['Functions']:
+        getresourceid = (matchingvpcs['FunctionName'])
+        print (getresourceid)
+
+
+
+       # try:
+        function_config = pass_lambdaa.get_function(FunctionName='dgo_tagging_ec2_resources')
+        #getsvpcid = function_config['VpcConfig']
+        print (function_config)
+        #print (getsvpcid)
+        #except:
+        #    print ("nothing there")
+
+        #add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
 
 
 
 def get_tgwattachment(pass_ec2,vpc_names,GetToken):
-    resourcebyvpc = pass_ec2.describe_transit_gateway_attachments(TransitGatewayAttachmentIds=[],
-        Filters=[
-            {
-                'Name': 'resource-type',
-                'Values': ['vpc']
-            }
-        ]) 
-    for matchingvpcs in resourcebyvpc['TransitGatewayAttachments']:
+    resourcebyvpc = pass_ec2.describe_transit_gateway_attachments()
+
+
+    for matchingvpcs in resourcebyvpc['Functions']:
         getresourceid = (matchingvpcs['TransitGatewayAttachmentId'])
         getsvpcid = (matchingvpcs['ResourceId'])
         add_tags(pass_ec2,getresourceid,getsvpcid,vpc_names)
@@ -260,7 +276,11 @@ def add_ebs_tags(ec2,resource_list,getvolumeid,vpc_list,vpc_names):
 falsetoken = True
 ec2 = boto3.client('ec2',"us-east-1")
 elb = boto3.client('elbv2',"us-east-1")
+lambdaa = boto3.client('lambda', region_name="us-east-1")
+
+def lambda_handler(event, Context):
+    get_ids(ec2,elb,lambdaa,falsetoken)
+    
 
 print ()
 print ("##################################################################################")
-get_ids(ec2,elb,falsetoken)
