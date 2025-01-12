@@ -1,0 +1,188 @@
+Description: No NAT GTW? Let's provision Endpoints!
+Parameters:
+  ProvisionEndpointsYesNo:
+    Description: >
+      Do you want to provision Endpoints
+      Yes 
+      or
+      No
+      >
+    Type: String
+    #AllowedPattern: ^tgw-.*$
+    #Default: tgw-0764cba494fbb77ed
+    #Default: no
+    AllowedValues:
+      - No
+      - Yes
+    ConstraintDescription: Invalid Selection!
+
+
+
+
+Conditions:
+  NoEndPoints: !Equals [!Ref ProvisionEndpointsYesNo, Yes]
+
+
+Resources:
+  SSM:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+
+  SSMMessages:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+ 
+
+  SSMEC2:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2messages'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  EC2:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  STS:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  DataSync:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.datasync'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  Lambda:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.lambda'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  EKS:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.eks'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+  ECR:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  CloudFormation:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: NoEndPoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.cloudformation'
+      VpcId: !ImportValue HubVPCDgoVPCID
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue HubVPCSubnetAPPA
+        - !ImportValue HubVPCSubnetAPPB
+      SecurityGroupIds:
+        - !ImportValue HubWebbAppSG
+
+  S3GTW:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !ImportValue HubVPCDgoVPCID
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      RouteTableIds:
+        - !ImportValue HubVPCDgoVPCAPPRTA
+        - !ImportValue HubVPCDgoVPCAPPRTB
+  
+
+## Create EC2 Instance
+
+#  InstanceBE:
+#    Type: AWS::EC2::Instance
+#    Properties:
+#      LaunchTemplate:
+#           LaunchTemplateId: !Ref EC2LaunchTemplate
+#      Tags:
+#        - Key: Name
+#          Value: !Sub $(InstanceName)-app_a

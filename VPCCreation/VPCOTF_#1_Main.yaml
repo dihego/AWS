@@ -1,0 +1,616 @@
+Description: Creating a VPC on the Fly "VPC OTF".  * VPC, Sunbets in Private,Pub,Transit {Main route table will be used for VPC Communication or TGW} * Create an IGW and passes parameters to other stacks
+
+Parameters:
+#  KeyNameKey:
+#    Description: Enter the name of the Key for your instance. This needs to be
+#      preconfigured!!
+#    Type: AWS::EC2::KeyPair::KeyName
+#    ConstraintDescription: Invalid Key
+    #Default: iad_b_
+
+  VPCName:
+    Description: VPC Name
+    Type: String
+    Default: VPCOTF
+
+  ValidateVPCCIDR:
+    Description: >
+      VPC CIDR --- IF you are changing the CIDR then you MUST EDIT the file to match CIDR and Subnet Breakdown!!!!
+      <<Default --> 172.30.96.0/21>>
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+    ConstraintDescription: Did you validate the CIDR?
+
+  ExistingORNewTGW:
+    Description: Do you want to create a new TGW or use existing TGW?
+    Type: String
+    Default: Existing
+    AllowedValues:
+      - New
+      - Existing
+      - None
+
+  ExistingTGWID: 
+    Description: TGW ID that VPC will be attaching to?
+    Type: String
+    AllowedPattern: ^tgw-.*$
+    Default: tgw-0764cba494fbb77ed
+
+  VPCActivated:
+    Description: Activate VPC? 
+    Type: String
+    #AllowedPattern: ^tgw-.*$
+    #Default: tgw-0764cba494fbb77ed
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+    ConstraintDescription: Invalid Selection!
+
+  IGWSupport:
+    Description: Requires an IGW?
+    Type: String
+    Default: No
+    AllowedValues:
+      - No
+      - Yes     
+    
+Mappings: 
+  CIDRConfig:
+    VPCCIDR:
+      CIDR: 172.30.96.0/21
+    CIDRPuba:
+      CIDR: 172.30.96.0/24
+    CIDRPubb:
+      CIDR: 172.30.97.0/24
+    CIDRAppa:
+      CIDR: 172.30.98.0/24
+    CIDRAppb:
+      CIDR: 172.30.99.0/24
+    CIDRTransa:
+      CIDR: 172.30.100.0/26
+    CIDRTransb:
+      CIDR: 172.30.100.64/26
+    CIDRFWa:
+      CIDR: 172.30.100.128/26
+    CIDRFWb:
+      CIDR: 172.30.100.192/26
+
+
+
+Conditions:
+  NoVPC: !Equals [!Ref VPCActivated, Yes]
+  NewTGW: !Equals [!Ref ExistingORNewTGW, New]
+  NoTGW: !Equals [!Ref ExistingORNewTGW, None]
+  ExistingTGW: !Equals [!Ref ExistingORNewTGW, Existing]
+  NoIGW: !Equals [!Ref IGWSupport, Yes]
+
+Resources:
+#Create a TGW or TransitGateway 
+  NewTransitGateway:
+    Condition: NewTGW
+    Type: "AWS::EC2::TransitGateway"
+    Properties:
+      AmazonSideAsn: 65512
+      Description: !Sub ${VPCName}-TGW
+      AutoAcceptSharedAttachments: "disable"
+      DefaultRouteTableAssociation: "enable"
+      DnsSupport: "enable"
+      VpnEcmpSupport: "enable"
+      Tags:
+      - Key: Application
+        Value: !Sub ${AWS::StackName}
+
+  #Creation of VPCs
+  VPCID:
+    Type: AWS::EC2::VPC
+    Condition: NoVPC
+    Properties:
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - VPCCIDR
+        - CIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref VPCName
+
+  #Creation of Subnets
+  Subnetappa:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRAppa
+        - CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subappa
+  Subnetappb:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRAppb
+        - CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subappb
+  Subnetpuba:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRPuba
+        - CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: subpuba
+  Subnetpubb:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRPubb
+        - CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: subpubb
+  Subnettransa:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRTransa
+        - CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subtransa
+  Subnettransb:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRTransb
+        - CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subtransb
+
+  SubnetFWA:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRFWa
+        - CIDR
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subtransa
+  SubnetFWB:
+    Type: AWS::EC2::Subnet
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      CidrBlock: !FindInMap
+        - CIDRConfig
+        - CIDRFWb
+        - CIDR
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: subtransb
+
+  #Creation of Route tables
+  RouteTableAppA:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-App Route Table A
+  RouteTablePub:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-Pub Route Table A
+  RouteTableFW:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-FW Route Table A
+  #Creation of Route tables
+  # AZ B
+  RouteTableAppB:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-App Route Table B
+  RouteTablePubB:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-Pub Route Table B
+  RouteTableTransB:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-Trans Route Table B
+  RouteTableFWB:
+    Type: AWS::EC2::RouteTable
+    Condition: NoVPC
+    Properties:
+      VpcId: !Ref VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-FW Route Table B
+
+  LambdaIAMRole:
+    Type: AWS::IAM::Role
+    Condition: NoVPC
+    DependsOn: VPCID
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:Describe*
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Condition: NoVPC
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaIAMRole.Arn
+      Runtime: python3.9
+      Timeout: 50
+      Code:
+        ZipFile: |
+          from __future__ import print_function
+          import json
+          import boto3
+          import urllib3
+          import cfnresponse
+          SUCCESS = "SUCCESS"
+          FAILED = "FAILED"
+          http = urllib3.PoolManager()
+          print('Loading function')
+          ec2 = boto3.client('ec2')
+          def lambda_handler(event, context):
+              print("Received event: " + json.dumps(event, indent=2))
+              responseData={}
+              try:
+                  if event['RequestType'] == 'Delete':
+                      print("Request Type:",event['RequestType'])
+                      print("Delete Request - No Physical resources to delete")
+                  elif event['RequestType'] == 'Create':
+                      print("Request Type:",event['RequestType'])
+                      VPCID=event['ResourceProperties']['VPCID']
+                      RouteTableID=get_vpc(VPCID)
+                      responseData={'RouteTableID':RouteTableID}
+                      print("Sending response to custom resource")
+                  elif event['RequestType'] == 'Update':
+                      print("Request Type:",event['RequestType'])
+                      VPCID=event['ResourceProperties']['VPCID']
+                      RouteTableID=get_vpc(VPCID)
+                      responseData={'RouteTableID':RouteTableID}
+                      print("Sending response to custom resource")
+                  responseStatus = 'SUCCESS'
+                  print("responseStatus: " + responseStatus)
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "CustomResourcePhysicalID")
+              except Exception as e:
+                  print('Failed to process:', e)
+                  responseStatus = 'FAILURE'
+                  responseData = {'Failure': 'Something bad happened.'}
+                  cfnresponse.send(event, context, cfnresponse.FAILURE, responseData, "CustomResourcePhysicalID")
+          def get_vpc(VPCID):
+              response = ec2.describe_route_tables (
+                Filters=[
+                  {
+                    'Name': 'association.main',
+                    'Values': [ 'true' ]
+                  },
+                  {
+                    'Name': 'vpc-id',
+                    'Values': [ VPCID ]
+                  }
+                ]
+              )
+              print("Printing the VPC Route Table ID ....")
+              RouteTableID=response['RouteTables'][0]['RouteTableId']
+              print(RouteTableID)
+              return RouteTableID
+          def send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False):
+              responseUrl = event['ResponseURL']
+              print(responseUrl)
+              responseBody = {'Status': responseStatus,
+                              'Reason': 'See the details in CloudWatch Log Stream: ' + context.log_stream_name,
+                              'PhysicalResourceId': physicalResourceId or context.log_stream_name,
+                              'StackId': event['StackId'],
+                              'RequestId': event['RequestId'],
+                              'LogicalResourceId': event['LogicalResourceId'],
+                              'Data': responseData}
+              json_responseBody = json.dumps(responseBody)
+              print("Response body:\n" + json_responseBody)
+              headers = {
+                  'content-type' : '',
+                  'content-length' : str(len(json_responseBody))
+              }
+              try:
+                  response = http.request('PUT', responseUrl, headers=headers, body=json_responseBody)
+                  print("Status code: " + response.reason)
+              except Exception as e:
+                  print("send(..) failed executing requests.put(..): " + str(e))
+
+  LambdatriggerDefaultRT:
+    Type: Custom::RouteTableLambda
+    Condition: NoVPC
+    Properties:
+      ServiceToken: !GetAtt LambdaFunction.Arn
+      VPCID: !Ref VPCID
+
+
+  #Creation of Subnet association
+  # Note that there is no way to reference the MAIN RouteTable of a VPC outside the template
+  # Another way is to create nested stack calling a lambda function to retrieve the data needed
+  # AZ A Subnet Association
+
+  SubnetRouteTableAssociationpubA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTablePub
+      SubnetId: !Ref Subnetpuba
+  SubnetRouteTableAssociationappA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTableAppA
+      SubnetId: !Ref Subnetappa
+  SubnetRouteTableAssociationTransA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !GetAtt LambdatriggerDefaultRT.RouteTableID
+      SubnetId: !Ref Subnettransa
+  SubnetRouteTableAssociationFWA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTableFW
+      SubnetId: !Ref SubnetFWA
+  # AZ B Subnet Association
+  SubnetRouteTableAssociationpubB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTablePubB
+      SubnetId: !Ref Subnetpubb
+  SubnetRouteTableAssociationappB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTableAppB
+      SubnetId: !Ref Subnetappb
+  SubnetRouteTableAssociationTransB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTableTransB
+      SubnetId: !Ref Subnettransb
+  SubnetRouteTableAssociationFWB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NoVPC
+    Properties:
+      RouteTableId: !Ref RouteTableFWB
+      SubnetId: !Ref SubnetFWB
+
+  #NetworkNestedStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    TemplateURL: https://dgocloudformationtemplates.s3.us-east-1.amazonaws.com/vpcotftemplates/VPCOTF_Nested_Network.yaml
+
+
+#########################
+# Create an IGW 
+#########################
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: NoIGW
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref VPCName
+  AttachIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: NoIGW
+    Properties:
+      VpcId: !Ref VPCID
+      InternetGatewayId: !Ref MyInternetGateway
+
+
+
+Outputs:
+  RTPubA:
+    Condition: NoVPC
+    Description: Route Table for Pub A
+    Value: !Ref RouteTablePub
+    Export:
+      Name: HubVPCPublicRTA
+
+  RTPubB:
+    Condition: NoVPC
+    Description: Route TAble for Pub B
+    Value: !Ref RouteTablePubB
+    Export:
+      Name: HubVPCPublicRTB
+
+  RTAPPA:
+    Condition: NoVPC
+    Description: Route table for APP A
+    Value: !Ref RouteTableAppA
+    Export:
+      Name: HubVPCDgoVPCAPPRTA
+
+  RTAPPB:
+    Condition: NoVPC
+    Description: Route table for APP B
+    Value: !Ref RouteTableAppB
+    Export:
+      Name: HubVPCDgoVPCAPPRTB
+
+  DefaultRT:
+    Condition: NoVPC
+    Description: Default RoutTable
+    Value: !GetAtt LambdatriggerDefaultRT.RouteTableID
+    Export:
+      Name: HubVPCVPCDefaultRT
+
+  SubnetAPPA:
+    Condition: NoVPC
+    Description: Subnet for App
+    Value: !Ref Subnetappa
+    Export:
+      Name: HubVPCSubnetAPPA
+
+  SubnetAPPB:
+    Condition: NoVPC
+    Description: Subnet for App B
+    Value: !Ref Subnetappb
+    Export:
+      Name: HubVPCSubnetAPPB
+
+  SubnetTransA:
+    Condition: NoVPC
+    Description: Subnet for Trans
+    Value: !Ref Subnettransa
+    Export:
+      Name: HubVPCSubnetTransA
+
+  SubnetTransB:
+    Condition: NoVPC
+    Description: Subnet for Trans B
+    Value: !Ref Subnettransb
+    Export:
+      Name: HubVPCSubnetTransB
+
+  SubnetPubA:
+    Condition: NoVPC
+    Description: Subnet for Public
+    Value: !Ref Subnetpuba
+    Export:
+      Name: HubVPCSubnetPubA
+
+  VPCID:
+    Condition: NoVPC
+    Description: VPC ID for DgoVPC
+    Value: !Ref VPCID
+    Export:
+      Name: HubVPCDgoVPCID
+
+
+  VPCCIDRs:
+    Condition: NoVPC
+    Description: VPC CIDRs
+    #Value: !Ref  VPCCIDR
+    Value: !FindInMap
+      - CIDRConfig
+      - VPCCIDR
+      - CIDR
+    Export:
+      Name: HubVPCVPCCIDR
+
+#  SSHKEY:
+#    Description: SSH KEY
+#    Value: !Ref KeyNameKey
+#    Export:
+#      Name: SSHKEY4EC2
+
+  VPCName:
+    Description: Name of VPC
+    Value: !Ref VPCName
+    Export:
+      Name: HubVPCName
+
+  ExistingTGWID: 
+    Condition: ExistingTGW
+    Description: TGW ID
+    Value: !Ref ExistingTGWID
+    Export:
+      Name: HubVPCExistingTGWID
+
+  NewTGWID: 
+    Condition: NewTGW
+    Description: New TGW ID
+    Value: !Ref NewTransitGateway
+    Export:
+      Name: HubVPCNewTGWID
+
+  NewIGWID:
+    Condition: NoIGW
+    Description: New IGW
+    Value: !Ref MyInternetGateway
+    Export: 
+      Name: MyIGW

@@ -25,14 +25,15 @@
             }
         },
         {
-            "height": 10,
-            "width": 23,
+            "height": 11,
+            "width": 17,
             "y": 32,
             "x": 0,
             "type": "log",
             "properties": {
-                "query": "SOURCE '/aws/events/config' | fields eventTime, account,detail.configurationItem.configuration.vpcId as vpc, detail.configurationItem.awsRegion as region, detail.configurationItem.resourceId as ResourceName, detail.configurationItem.resourceType as resoucetype, detail.configurationItem.tags.Name as tag, detail.configurationItemDiff.changeType as changetype, detail.configurationItemDiff.changedProperties.Configuration.Routes.0.changeType as resourcchangetype\n| sort eventTime desc\n| limit 10000",
+                "query": "SOURCE '/aws/events/config' | fields detail.configurationItem.configurationItemCaptureTime as eventTime, detail.configurationItem.configuration.vpcId as vpc, detail.configurationItem.awsRegion as region, detail.configurationItem.resourceId as ResourceName, detail.configurationItem.resourceType as resoucetype, detail.configurationItem.tags.Name as tag, detail.configurationItemDiff.changeType as changetype, detail.configurationItemDiff.changedProperties.Configuration.Routes.0.changeType as resourcchangetype\n| sort eventTime desc\n| limit 10000",
                 "region": "us-east-1",
+                "stacked": false,
                 "title": "Log group: /aws/events/config",
                 "view": "table"
             }
@@ -110,7 +111,7 @@
         {
             "height": 6,
             "width": 14,
-            "y": 42,
+            "y": 43,
             "x": 0,
             "type": "log",
             "properties": {
@@ -124,14 +125,14 @@
         {
             "height": 6,
             "width": 9,
-            "y": 42,
+            "y": 43,
             "x": 14,
             "type": "log",
             "properties": {
                 "query": "SOURCE '/aws/events/ctrail' | fields eventTime, responseElements.ConsoleLogin as Login, sourceIPAddress, userIdentity.principalId as AssumedUser,  userIdentity.sessionContext.sessionIssuer.userName as Assumedrole, userIdentity.accessKeyId as Token, userIdentity.sessionContext.sessionIssuer.principalId as UserIdentifier, eventID as CtrailEventId\n| filter eventSource = 'signin.amazonaws.com'\n| filter eventName = 'ConsoleLogin'\n| stats count() by AssumedUser, bin(24h)",
                 "region": "us-east-1",
                 "stacked": false,
-                "title": "",
+                "title": "Console login count",
                 "view": "pie"
             }
         },
@@ -152,7 +153,7 @@
         {
             "height": 6,
             "width": 23,
-            "y": 0,
+            "y": 6,
             "x": 0,
             "type": "metric",
             "properties": {
@@ -170,23 +171,28 @@
                     [ "...", "AttachVolume", ".", ".", ".", ".", { "region": "us-east-1" } ],
                     [ "...", "StartInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
                     [ "...", "DeleteRoute", ".", ".", ".", ".", { "region": "us-east-1" } ],
-                    [ "...", "RevokeSecurityGroupIngress", ".", ".", ".", "." ],
-                    [ "...", "DeleteNetworkInterface", ".", ".", ".", "." ],
-                    [ "...", "CreateNetworkInterface", ".", ".", ".", "." ]
+                    [ "...", "RevokeSecurityGroupIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "DeleteNetworkInterface", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateNetworkInterface", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateRouteTable", ".", ".", ".", ".", { "region": "us-east-2" } ],
+                    [ "...", { "region": "us-east-1" } ],
+                    [ "...", "CreateVpcEndpoint", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "GetInstanceMetadataDefaults", ".", ".", ".", "." ],
+                    [ "...", "DeleteVpcEndpoints", ".", ".", ".", "." ]
                 ],
                 "sparkline": false,
                 "view": "timeSeries",
-                "stacked": true,
+                "stacked": false,
                 "region": "us-east-1",
                 "period": 60,
                 "stat": "Sum",
-                "title": "(Count)Includes Denies"
+                "title": "(EC2)Includes Denies"
             }
         },
         {
             "height": 6,
             "width": 23,
-            "y": 6,
+            "y": 0,
             "x": 0,
             "type": "metric",
             "properties": {
@@ -201,6 +207,69 @@
                 "period": 60,
                 "stat": "Sum",
                 "title": "Lambda_Includes Denies"
+            }
+        },
+        {
+            "height": 15,
+            "width": 23,
+            "y": 49,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "sparkline": false,
+                "metrics": [
+                    [ "AWS/Usage", "CallCount", "Type", "API", "Resource", "ReplaceRoute", "Service", "EC2", "Class", "None", { "region": "us-east-1" } ],
+                    [ "...", "ReplaceRouteTableAssociation", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AssociateIamInstanceProfile", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "TerminateInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "RunInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AuthorizeSecurityGroupIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateRoute", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "UpdateSecurityGroupRuleDescriptionsIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "ModifyVolume", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "StopInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "AttachVolume", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "StartInstances", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "DeleteRoute", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "RevokeSecurityGroupIngress", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "DeleteNetworkInterface", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateNetworkInterface", ".", ".", ".", ".", { "region": "us-east-1" } ],
+                    [ "...", "CreateRouteTable", ".", ".", ".", "." ],
+                    [ "...", "CreateVpcEndpoint", ".", ".", ".", "." ],
+                    [ "...", "DeleteVpcEndpoints", ".", ".", ".", "." ],
+                    [ "...", "GetInstanceMetadataDefaults", ".", ".", ".", "." ]
+                ],
+                "view": "table",
+                "stacked": false,
+                "region": "us-east-1",
+                "period": 60,
+                "stat": "Sum",
+                "title": "EC2_Table_Includes_Denies"
+            }
+        },
+        {
+            "height": 11,
+            "width": 6,
+            "y": 32,
+            "x": 17,
+            "type": "metric",
+            "properties": {
+                "x": 0,
+                "y": 0,
+                "width": 6,
+                "height": 6,
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Config", "ConfigurationItemsRecorded", "ResourceType", "All", { "label": "All", "region": "us-east-1" } ]
+                ],
+                "region": "us-east-1",
+                "stat": "Sum",
+                "period": 300,
+                "title": "Configuration Items Recorded",
+                "legend": {
+                    "position": "bottom"
+                }
             }
         }
     ]
